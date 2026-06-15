@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MC팀 가공조건 시스템</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  :root {
+    --bg: #F4F4F4;
+    --surface: #FFFFFF;
+    --border: #E0E0E0;
+    --primary: #C0392B;
+    --primary-dark: #922B21;
+    --primary-light: #FADBD8;
+    --charcoal: #2C2C2C;
+    --gray: #666666;
+    --light-gray: #F9F9F9;
+    --good: #27AE60;
+    --good-bg: #EAFAF1;
+    --warn: #E67E22;
+    --warn-bg: #FEF9E7;
+    --danger: #C0392B;
+    --danger-bg: #FDEDEC;
+    --font: 'Malgun Gothic', '맑은 고딕', sans-serif;
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--charcoal);
+    font-size: 13px;
+    min-height: 100vh;
+  }
+
+  /* Header */
+  .header {
+    background: var(--charcoal);
+    color: white;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .header-badge {
+    background: var(--primary);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 1px;
+  }
+  .header h1 { font-size: 15px; font-weight: bold; letter-spacing: 0.5px; }
+  .data-count {
+    background: rgba(255,255,255,0.15);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    color: #ccc;
+  }
+  .data-count span { color: white; font-weight: bold; }
+
+  /* Layout */
+  .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+  .grid { display: grid; grid-template-columns: 340px 1fr; gap: 20px; }
+
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .card-header {
+    background: var(--charcoal);
+    color: white;
+    padding: 10px 16px;
+    font-size: 12px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-header .dot {
+    width: 8px; height: 8px;
+    background: var(--primary);
+    border-radius: 50%;
+  }
+  .card-body { padding: 16px; }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    border-bottom: 2px solid var(--border);
+    margin-bottom: 20px;
+    gap: 4px;
+  }
+  .tab {
+    padding: 8px 20px;
+    cursor: pointer;
+    border-radius: 6px 6px 0 0;
+    font-size: 12px;
+    font-weight: bold;
+    color: var(--gray);
+    transition: all 0.2s;
+    border: 1px solid transparent;
+    border-bottom: none;
+  }
+  .tab:hover { background: #F0F0F0; color: var(--charcoal); }
+  .tab.active {
+    background: var(--surface);
+    color: var(--primary);
+    border-color: var(--border);
+    border-bottom: 2px solid var(--surface);
+    margin-bottom: -2px;
+  }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* Form */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .form-group { display: flex; flex-direction: column; gap: 4px; }
+  .form-group.full { grid-column: 1/-1; }
+  .form-group label {
+    font-size: 11px;
+    font-weight: bold;
+    color: var(--gray);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .form-group select, .form-group input {
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: var(--font);
+    font-size: 13px;
+    background: var(--light-gray);
+    color: var(--charcoal);
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+  }
+  .form-group select:focus, .form-group input:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: white;
+  }
+
+  /* Buttons */
+  .btn {
+    padding: 9px 18px;
+    border: none;
+    border-radius: 6px;
+    font-family: var(--font);
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-primary { background: var(--primary); color: white; }
+  .btn-primary:hover { background: var(--primary-dark); }
+  .btn-secondary { background: var(--charcoal); color: white; }
+  .btn-secondary:hover { background: #444; }
+  .btn-outline { background: white; color: var(--charcoal); border: 1px solid var(--border); }
+  .btn-outline:hover { background: var(--light-gray); }
+  .btn-good { background: var(--good); color: white; }
+  .btn-good:hover { background: #219A52; }
+  .btn-row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+
+  /* Result Box */
+  .result-box {
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-top: 14px;
+    border: 1px solid;
+  }
+  .result-box.empty {
+    background: var(--light-gray);
+    border-color: var(--border);
+    text-align: center;
+    color: var(--gray);
+    padding: 30px;
+    font-size: 12px;
+  }
+  .result-box.has-data {
+    background: white;
+    border-color: var(--border);
+  }
+  .result-title {
+    font-size: 11px;
+    font-weight: bold;
+    color: var(--gray);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+  }
+  .result-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .result-item {
+    background: var(--light-gray);
+    border-radius: 6px;
+    padding: 10px;
+    text-align: center;
+    border: 1px solid var(--border);
+  }
+  .result-item .r-label { font-size: 10px; color: var(--gray); margin-bottom: 4px; }
+  .result-item .r-value { font-size: 16px; font-weight: bold; color: var(--charcoal); }
+  .result-item .r-unit { font-size: 10px; color: var(--gray); }
+
+  /* Status Badge */
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+  }
+  .status-badge.good { background: var(--good-bg); color: var(--good); }
+  .status-badge.warn { background: var(--warn-bg); color: var(--warn); }
+  .status-badge.danger { background: var(--danger-bg); color: var(--danger); }
+  .status-badge::before { content: '●'; font-size: 8px; }
+
+  /* Warning Box */
+  .warning-box {
+    background: var(--danger-bg);
+    border: 1px solid #F1948A;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-top: 10px;
+  }
+  .warning-box .w-title {
+    font-size: 12px;
+    font-weight: bold;
+    color: var(--danger);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .warning-item {
+    background: white;
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-top: 6px;
+    border-left: 3px solid var(--danger);
+  }
+  .warning-item .wi-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+  .wi-tag {
+    background: var(--primary-light);
+    color: var(--primary);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: bold;
+  }
+  .wi-tag.prob { background: #FADBD8; color: var(--danger); }
+  .warning-item .wi-note { font-size: 11px; color: #666; margin-top: 4px; }
+
+  /* LD Info */
+  .ld-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--light-gray);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    margin-top: 10px;
+  }
+  .ld-label { font-size: 11px; color: var(--gray); font-weight: bold; }
+  .ld-value { font-size: 18px; font-weight: bold; }
+  .ld-value.good { color: var(--good); }
+  .ld-value.warn { color: var(--warn); }
+  .ld-value.danger { color: var(--danger); }
+  .ld-desc { font-size: 11px; color: var(--gray); margin-left: auto; }
+
+  /* Data Table */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  thead th {
+    background: var(--charcoal);
+    color: white;
+    padding: 9px 10px;
+    text-align: center;
+    font-size: 11px;
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+  }
+  tbody tr { border-bottom: 1px solid var(--border); }
+  tbody tr:hover { background: #F8F8F8; }
+  tbody td { padding: 8px 10px; text-align: center; white-space: nowrap; }
+  tbody td.note { text-align: left; white-space: normal; max-width: 200px; font-size: 11px; color: var(--gray); }
+
+  /* Result cells */
+  .res-good { background: var(--good-bg); color: var(--good); font-weight: bold; border-radius: 10px; padding: 2px 10px; display: inline-block; }
+  .res-warn { background: var(--warn-bg); color: var(--warn); font-weight: bold; border-radius: 10px; padding: 2px 10px; display: inline-block; }
+  .res-bad  { background: var(--danger-bg); color: var(--danger); font-weight: bold; border-radius: 10px; padding: 2px 10px; display: inline-block; }
+  .prob-tag { background: var(--danger-bg); color: var(--danger); border-radius: 10px; padding: 2px 8px; font-size: 10px; font-weight: bold; }
+
+  /* Upload Zone */
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--light-gray);
+    margin-bottom: 16px;
+  }
+  .upload-zone:hover { border-color: var(--primary); background: var(--primary-light); }
+  .upload-zone .uz-icon { font-size: 28px; margin-bottom: 8px; }
+  .upload-zone p { font-size: 12px; color: var(--gray); }
+  .upload-zone strong { color: var(--primary); }
+
+  /* Stats Row */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+  }
+  .stat-card .sc-num { font-size: 22px; font-weight: bold; }
+  .stat-card .sc-label { font-size: 10px; color: var(--gray); margin-top: 2px; }
+  .sc-total .sc-num { color: var(--charcoal); }
+  .sc-good  .sc-num { color: var(--good); }
+  .sc-warn  .sc-num { color: var(--warn); }
+  .sc-bad   .sc-num { color: var(--danger); }
+
+  /* Input form for new data */
+  .input-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+
+  /* Filter bar */
+  .filter-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .filter-bar select, .filter-bar input {
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: var(--font);
+    font-size: 12px;
+    background: white;
+  }
+  .filter-bar label { font-size: 11px; color: var(--gray); font-weight: bold; }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+  .text-gray { color: var(--gray); }
+  .text-sm { font-size: 11px; }
+  .mt-8 { margin-top: 8px; }
+  .flex { display: flex; align-items: center; gap: 8px; }
+  
+  /* No data */
+  .no-data { text-align: center; padding: 30px; color: var(--gray); font-size: 12px; }
+
+  @media (max-width: 768px) {
+    .grid { grid-template-columns: 1fr; }
+    .result-grid { grid-template-columns: repeat(2, 1fr); }
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .input-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="header-badge">MC팀</div>
+    <h1>가공조건 시스템</h1>
+  </div>
+  <div class="data-count">데이터 <span id="totalCount">0</span>건</div>
+</div>
+
+<div class="container">
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('recommend')">추천조건</div>
+    <div class="tab" onclick="switchTab('input')">데이터 입력</div>
+    <div class="tab" onclick="switchTab('history')">전체 데이터</div>
+    <div class="tab" onclick="switchTab('problems')">문제 이력</div>
+  </div>
+
+  <!-- ① 추천조건 탭 -->
+  <div id="tab-recommend" class="tab-content active">
+    <div class="grid">
+      <!-- 입력 패널 -->
+      <div>
+        <div class="card">
+          <div class="card-header"><div class="dot"></div>조건 입력</div>
+          <div class="card-body">
+            <div class="form-grid">
+              <div class="form-group">
+                <label>기계명</label>
+                <select id="r-machine">
+                  <option value="">선택</option>
+                  <option>UL</option><option>UM</option>
+                  <option>650</option><option>850</option><option>1250</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>재질</label>
+                <select id="r-material">
+                  <option value="">선택</option>
+                  <option>SKD11</option><option>S45C</option><option>용접</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>열처리</label>
+                <select id="r-heat">
+                  <option value="">선택</option>
+                  <option>열처리전</option><option>열처리후</option><option>해당없음</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>공구타입</label>
+                <select id="r-tooltype">
+                  <option value="">선택</option>
+                  <option>볼엔드밀</option><option>플랫엔드밀</option><option>커터</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>공구지름 (mm)</label>
+                <input type="number" id="r-diameter" placeholder="예: 10">
+              </div>
+              <div class="form-group">
+                <label>돌출길이 (mm)</label>
+                <input type="number" id="r-overhang" placeholder="예: 55">
+              </div>
+              <div class="form-group full">
+                <label>가공종류</label>
+                <select id="r-process">
+                  <option value="">선택</option>
+                  <option>황삭</option><option>황잔삭</option><option>중삭</option>
+                  <option>정삭</option><option>잔삭</option>
+                </select>
+              </div>
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-primary" onclick="getRecommendation()">조건 추천받기</button>
+              <button class="btn btn-outline" onclick="clearRecommend()">초기화</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 결과 패널 -->
+      <div>
+        <div class="card">
+          <div class="card-header"><div class="dot"></div>추천 결과</div>
+          <div class="card-body">
+            <div id="recommendResult">
+              <div class="result-box empty">
+                ← 왼쪽에서 조건을 입력하고<br>추천받기 버튼을 눌러주세요
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 엑셀 불러오기 -->
+        <div class="card mt-8" style="margin-top:12px">
+          <div class="card-header"><div class="dot"></div>엑셀 데이터 불러오기</div>
+          <div class="card-body">
+            <div class="upload-zone" onclick="document.getElementById('xlsxFile').click()">
+              <div class="uz-icon">📂</div>
+              <p><strong>가공조건표 엑셀 파일</strong>을 클릭하여 불러오세요</p>
+              <p class="text-sm" style="margin-top:4px">기존 데이터가 자동으로 추가됩니다</p>
+            </div>
+            <input type="file" id="xlsxFile" accept=".xlsx,.xls" style="display:none" onchange="loadExcel(this)">
+            <div id="loadStatus" class="text-sm text-gray"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ② 데이터 입력 탭 -->
+  <div id="tab-input" class="tab-content">
+    <div class="card">
+      <div class="card-header"><div class="dot"></div>새 가공조건 입력</div>
+      <div class="card-body">
+        <div class="input-grid">
+          <div class="form-group">
+            <label>기계명</label>
+            <select id="i-machine">
+              <option value="">선택</option>
+              <option>UL</option><option>UM</option>
+              <option>650</option><option>850</option><option>1250</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>재질</label>
+            <select id="i-material">
+              <option value="">선택</option>
+              <option>SKD11</option><option>S45C</option><option>용접</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>열처리</label>
+            <select id="i-heat">
+              <option value="">선택</option>
+              <option>열처리전</option><option>열처리후</option><option>해당없음</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>공구타입</label>
+            <select id="i-tooltype">
+              <option value="">선택</option>
+              <option>볼엔드밀</option><option>플랫엔드밀</option><option>커터</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>공구지름 (mm)</label>
+            <input type="number" id="i-diameter" placeholder="예: 10">
+          </div>
+          <div class="form-group">
+            <label>가공종류</label>
+            <select id="i-process">
+              <option value="">선택</option>
+              <option>황삭</option><option>황잔삭</option><option>중삭</option>
+              <option>정삭</option><option>잔삭</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>가공전략</label>
+            <select id="i-strategy">
+              <option value="">선택</option>
+              <option>황삭</option><option>등고선</option><option>라스터</option>
+              <option>3D옵셋</option><option>코너펜슬</option><option>코너잔삭</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>돌출길이 (mm)</label>
+            <input type="number" id="i-overhang" placeholder="예: 55">
+          </div>
+          <div class="form-group">
+            <label>RPM</label>
+            <input type="number" id="i-rpm" placeholder="예: 6000">
+          </div>
+          <div class="form-group">
+            <label>이송 (mm/min)</label>
+            <input type="number" id="i-feed" placeholder="예: 1800">
+          </div>
+          <div class="form-group">
+            <label>Ap (mm)</label>
+            <input type="number" id="i-ap" step="0.01" placeholder="예: 0.1">
+          </div>
+          <div class="form-group">
+            <label>Ae (mm)</label>
+            <input type="number" id="i-ae" step="0.01" placeholder="예: 0.15">
+          </div>
+          <div class="form-group">
+            <label>결과</label>
+            <select id="i-result">
+              <option value="">선택</option>
+              <option>좋음</option><option>보통</option><option>나쁨</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>문제유형</label>
+            <select id="i-problem">
+              <option value="">없음</option>
+              <option>공구떨림</option><option>공구파손</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>특이사항</label>
+            <input type="text" id="i-note" placeholder="메모">
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-good" onclick="addData()">✔ 데이터 추가</button>
+          <button class="btn btn-outline" onclick="clearInput()">초기화</button>
+          <button class="btn btn-secondary" onclick="exportExcel()">📥 엑셀 다운로드</button>
+        </div>
+        <div id="inputStatus" class="text-sm text-gray mt-8"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ③ 전체 데이터 탭 -->
+  <div id="tab-history" class="tab-content">
+    <div class="stats-row">
+      <div class="stat-card sc-total"><div class="sc-num" id="st-total">0</div><div class="sc-label">전체</div></div>
+      <div class="stat-card sc-good"> <div class="sc-num" id="st-good">0</div> <div class="sc-label">좋음</div></div>
+      <div class="stat-card sc-warn"> <div class="sc-num" id="st-warn">0</div> <div class="sc-label">보통</div></div>
+      <div class="stat-card sc-bad">  <div class="sc-num" id="st-bad">0</div>  <div class="sc-label">나쁨</div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="dot"></div>전체 데이터</div>
+      <div class="card-body">
+        <div class="filter-bar">
+          <label>기계명</label>
+          <select id="f-machine" onchange="renderTable()"><option value="">전체</option></select>
+          <label>재질</label>
+          <select id="f-material" onchange="renderTable()"><option value="">전체</option></select>
+          <label>결과</label>
+          <select id="f-result" onchange="renderTable()">
+            <option value="">전체</option>
+            <option>좋음</option><option>보통</option><option>나쁨</option>
+          </select>
+          <label>문제</label>
+          <select id="f-problem" onchange="renderTable()">
+            <option value="">전체</option>
+            <option>공구떨림</option><option>공구파손</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table id="dataTable">
+            <thead>
+              <tr>
+                <th>#</th><th>기계명</th><th>재질</th><th>열처리</th>
+                <th>공구타입</th><th>φ</th><th>가공종류</th><th>가공전략</th>
+                <th>돌출</th><th>RPM</th><th>이송</th><th>Ap</th><th>Ae</th>
+                <th>결과</th><th>문제유형</th><th>특이사항</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody">
+              <tr><td colspan="16" class="no-data">데이터가 없습니다.<br>엑셀 파일을 불러오거나 직접 입력해주세요.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ④ 문제 이력 탭 -->
+  <div id="tab-problems" class="tab-content">
+    <div class="card">
+      <div class="card-header"><div class="dot"></div>문제 발생 이력 (공구떨림 / 공구파손)</div>
+      <div class="card-body">
+        <div id="problemList">
+          <div class="no-data">문제 데이터가 없습니다.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── 데이터 저장소
+let machiningData = [];
+
+// ── 탭 전환
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    t.classList.toggle('active', ['recommend','input','history','problems'][i] === name);
+  });
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  if (name === 'history') { updateStats(); renderTable(); }
+  if (name === 'problems') renderProblems();
+}
+
+// ── 엑셀 불러오기
+function loadExcel(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const ws = wb.Sheets['가공조건'];
+      if (!ws) { alert("'가공조건' 시트를 찾을 수 없어요!"); return; }
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+      let added = 0;
+      for (let i = 1; i < rows.length; i++) {
+        const r = rows[i];
+        if (!r[0]) continue;
+        machiningData.push({
+          machine:  r[0]  || '',
+          material: r[1]  || '',
+          heat:     r[2]  || '',
+          tooltype: r[3]  || '',
+          diameter: parseFloat(r[4]) || 0,
+          process:  r[5]  || '',
+          strategy: r[6]  || '',
+          overhang: parseFloat(r[7]) || 0,
+          rpm:      parseFloat(r[8]) || 0,
+          feed:     parseFloat(r[9]) || 0,
+          ap:       parseFloat(r[10]) || 0,
+          ae:       parseFloat(r[11]) || 0,
+          result:   r[12] || '',
+          problem:  r[13] || '',
+          note:     r[14] || '',
+        });
+        added++;
+      }
+      updateCount();
+      updateFilters();
+      document.getElementById('loadStatus').innerHTML =
+        `<span style="color:var(--good)">✔ ${added}건 불러오기 완료!</span>`;
+    } catch(err) {
+      document.getElementById('loadStatus').innerHTML =
+        `<span style="color:var(--danger)">오류: ${err.message}</span>`;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ── 추천조건
+function getRecommendation() {
+  const machine  = document.getElementById('r-machine').value;
+  const material = document.getElementById('r-material').value;
+  const heat     = document.getElementById('r-heat').value;
+  const tooltype = document.getElementById('r-tooltype').value;
+  const diameter = parseFloat(document.getElementById('r-diameter').value);
+  const overhang = parseFloat(document.getElementById('r-overhang').value);
+  const process  = document.getElementById('r-process').value;
+
+  if (!machine || !material || !tooltype || !diameter || !process) {
+    alert('기계명, 재질, 공구타입, 공구지름, 가공종류는 필수입니다!');
+    return;
+  }
+
+  // L/D 계산
+  const ld = overhang ? (overhang / diameter) : null;
+
+  // 유사 조건 필터 (±5mm, 결과=좋음만 추천)
+  const similar = machiningData.filter(d => {
+    const matchBase = d.machine === machine &&
+                      d.material === material &&
+                      d.tooltype === tooltype &&
+                      d.diameter === diameter &&
+                      d.process === process;
+    const matchHeat = !heat || d.heat === heat;
+    const matchOH   = !overhang || (d.overhang >= overhang - 5 && d.overhang <= overhang + 5);
+    return matchBase && matchHeat && matchOH;
+  });
+
+  const goodData = similar.filter(d => d.result === '좋음');
+
+  // 추천값 계산
+  let recRpm = 0, recFeed = 0, recAp = 0, recAe = 0, cnt = 0;
+  goodData.forEach(d => {
+    if (d.rpm)  { recRpm  += d.rpm;  }
+    if (d.feed) { recFeed += d.feed; }
+    if (d.ap)   { recAp   += d.ap;   }
+    if (d.ae)   { recAe   += d.ae;   }
+    cnt++;
+  });
+  if (cnt > 0) {
+    recRpm  = Math.round(recRpm  / cnt / 100) * 100;
+    recFeed = Math.round(recFeed / cnt / 100) * 100;
+    recAp   = Math.round(recAp   / cnt * 100) / 100;
+    recAe   = Math.round(recAe   / cnt * 100) / 100;
+  }
+
+  // 문제 이력 (±5mm 범위)
+  const problemData = similar.filter(d => d.problem);
+
+  // 상태 판단
+  let ldStatus = '', ldClass = '';
+  if (ld !== null) {
+    if (ld <= 3)      { ldStatus = '정상'; ldClass = 'good'; }
+    else if (ld <= 5) { ldStatus = '주의'; ldClass = 'warn'; }
+    else              { ldStatus = '위험'; ldClass = 'danger'; }
+  }
+
+  // 결과 렌더링
+  let html = '';
+
+  // L/D 표시
+  if (ld !== null) {
+    html += `<div class="ld-bar">
+      <span class="ld-label">L/D</span>
+      <span class="ld-value ${ldClass}">${ld.toFixed(1)}</span>
+      <span class="status-badge ${ldClass}">${ldStatus}</span>
+      <span class="ld-desc">${overhang}mm ÷ φ${diameter}</span>
+    </div>`;
+  }
+
+  // 추천조건
+  if (cnt > 0) {
+    html += `<div class="result-box has-data" style="margin-top:10px">
+      <div class="result-title">추천 가공조건 (${cnt}건 평균 · 결과 좋음 기준)</div>
+      <div class="result-grid">
+        <div class="result-item">
+          <div class="r-label">RPM</div>
+          <div class="r-value">S${recRpm.toLocaleString()}</div>
+        </div>
+        <div class="result-item">
+          <div class="r-label">이송</div>
+          <div class="r-value">F${recFeed.toLocaleString()}</div>
+          <div class="r-unit">mm/min</div>
+        </div>
+        <div class="result-item">
+          <div class="r-label">Ap</div>
+          <div class="r-value">${recAp || '-'}</div>
+          <div class="r-unit">mm</div>
+        </div>
+        <div class="result-item">
+          <div class="r-label">Ae</div>
+          <div class="r-value">${recAe || '-'}</div>
+          <div class="r-unit">mm</div>
+        </div>
+      </div>
+    </div>`;
+  } else {
+    html += `<div class="result-box empty" style="margin-top:10px">
+      유사 조건 데이터가 없습니다.<br>
+      <span class="text-sm">데이터를 더 쌓으면 추천이 정확해져요</span>
+    </div>`;
+  }
+
+  // ⚠️ 문제 이력
+  if (problemData.length > 0) {
+    html += `<div class="warning-box">
+      <div class="w-title">⚠️ 유사 조건에서 문제 발생 이력 있음 (${problemData.length}건)</div>`;
+    problemData.forEach(d => {
+      html += `<div class="warning-item">
+        <div class="wi-row">
+          <span class="wi-tag">φ${d.diameter}</span>
+          <span class="wi-tag">${d.process}</span>
+          <span class="wi-tag">${d.overhang}mm</span>
+          <span class="wi-tag">S${d.rpm} F${d.feed}</span>
+          <span class="wi-tag prob">${d.problem}</span>
+        </div>
+        <div class="wi-note">${d.note || '-'}</div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  document.getElementById('recommendResult').innerHTML = html;
+}
+
+function clearRecommend() {
+  ['r-machine','r-material','r-heat','r-tooltype','r-process'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  ['r-diameter','r-overhang'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('recommendResult').innerHTML =
+    '<div class="result-box empty">← 왼쪽에서 조건을 입력하고<br>추천받기 버튼을 눌러주세요</div>';
+}
+
+// ── 데이터 추가
+function addData() {
+  const row = {
+    machine:  document.getElementById('i-machine').value,
+    material: document.getElementById('i-material').value,
+    heat:     document.getElementById('i-heat').value,
+    tooltype: document.getElementById('i-tooltype').value,
+    diameter: parseFloat(document.getElementById('i-diameter').value) || 0,
+    process:  document.getElementById('i-process').value,
+    strategy: document.getElementById('i-strategy').value,
+    overhang: parseFloat(document.getElementById('i-overhang').value) || 0,
+    rpm:      parseFloat(document.getElementById('i-rpm').value) || 0,
+    feed:     parseFloat(document.getElementById('i-feed').value) || 0,
+    ap:       parseFloat(document.getElementById('i-ap').value) || 0,
+    ae:       parseFloat(document.getElementById('i-ae').value) || 0,
+    result:   document.getElementById('i-result').value,
+    problem:  document.getElementById('i-problem').value,
+    note:     document.getElementById('i-note').value,
+  };
+  if (!row.machine || !row.material || !row.diameter || !row.process) {
+    alert('기계명, 재질, 공구지름, 가공종류는 필수입니다!');
+    return;
+  }
+  machiningData.push(row);
+  updateCount();
+  updateFilters();
+  document.getElementById('inputStatus').innerHTML =
+    `<span style="color:var(--good)">✔ 데이터 추가 완료! (총 ${machiningData.length}건)</span>`;
+}
+
+function clearInput() {
+  ['i-machine','i-material','i-heat','i-tooltype','i-process','i-strategy','i-result','i-problem'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  ['i-diameter','i-overhang','i-rpm','i-feed','i-ap','i-ae','i-note'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+}
+
+// ── 테이블 렌더링
+function renderTable() {
+  const fm = document.getElementById('f-machine').value;
+  const fmat = document.getElementById('f-material').value;
+  const fr = document.getElementById('f-result').value;
+  const fp = document.getElementById('f-problem').value;
+
+  const filtered = machiningData.filter(d =>
+    (!fm   || d.machine  === fm) &&
+    (!fmat || d.material === fmat) &&
+    (!fr   || d.result   === fr) &&
+    (!fp   || d.problem  === fp)
+  );
+
+  const tbody = document.getElementById('tableBody');
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="16" class="no-data">데이터가 없습니다.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map((d, i) => {
+    const resClass = d.result === '좋음' ? 'res-good' : d.result === '보통' ? 'res-warn' : 'res-bad';
+    return `<tr>
+      <td>${i+1}</td>
+      <td>${d.machine}</td><td>${d.material}</td><td>${d.heat}</td>
+      <td>${d.tooltype}</td><td>φ${d.diameter}</td>
+      <td>${d.process}</td><td>${d.strategy}</td>
+      <td>${d.overhang}mm</td>
+      <td>S${d.rpm}</td><td>F${d.feed}</td>
+      <td>${d.ap||'-'}</td><td>${d.ae||'-'}</td>
+      <td><span class="${resClass}">${d.result}</span></td>
+      <td>${d.problem ? `<span class="prob-tag">${d.problem}</span>` : '-'}</td>
+      <td class="note">${d.note||'-'}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── 문제 이력 렌더링
+function renderProblems() {
+  const problems = machiningData.filter(d => d.problem);
+  const el = document.getElementById('problemList');
+  if (problems.length === 0) {
+    el.innerHTML = '<div class="no-data">문제 이력이 없습니다.</div>';
+    return;
+  }
+  el.innerHTML = problems.map(d => `
+    <div class="warning-item" style="margin-bottom:8px">
+      <div class="wi-row">
+        <span class="wi-tag">${d.machine}</span>
+        <span class="wi-tag">${d.material}</span>
+        <span class="wi-tag">φ${d.diameter}</span>
+        <span class="wi-tag">${d.process}</span>
+        <span class="wi-tag">${d.strategy}</span>
+        <span class="wi-tag">돌출 ${d.overhang}mm</span>
+        <span class="wi-tag">S${d.rpm} F${d.feed}</span>
+        <span class="wi-tag prob">${d.problem}</span>
+      </div>
+      <div class="wi-note" style="margin-top:6px">📝 ${d.note || '특이사항 없음'}</div>
+    </div>
+  `).join('');
+}
+
+// ── 통계 업데이트
+function updateStats() {
+  document.getElementById('st-total').textContent = machiningData.length;
+  document.getElementById('st-good').textContent  = machiningData.filter(d => d.result === '좋음').length;
+  document.getElementById('st-warn').textContent  = machiningData.filter(d => d.result === '보통').length;
+  document.getElementById('st-bad').textContent   = machiningData.filter(d => d.result === '나쁨').length;
+}
+
+function updateCount() {
+  document.getElementById('totalCount').textContent = machiningData.length;
+}
+
+function updateFilters() {
+  const machines  = [...new Set(machiningData.map(d => d.machine))];
+  const materials = [...new Set(machiningData.map(d => d.material))];
+  ['f-machine'].forEach(id => {
+    const el = document.getElementById(id);
+    const cur = el.value;
+    el.innerHTML = '<option value="">전체</option>' +
+      machines.map(m => `<option ${m===cur?'selected':''}>${m}</option>`).join('');
+  });
+  ['f-material'].forEach(id => {
+    const el = document.getElementById(id);
+    const cur = el.value;
+    el.innerHTML = '<option value="">전체</option>' +
+      materials.map(m => `<option ${m===cur?'selected':''}>${m}</option>`).join('');
+  });
+}
+
+// ── 엑셀 다운로드
+function exportExcel() {
+  if (machiningData.length === 0) { alert('데이터가 없습니다!'); return; }
+  const headers = ['기계명','재질','열처리','공구타입','공구지름(mm)','가공종류','가공전략',
+                   '돌출길이(mm)','RPM','이송(mm/min)','Ap(mm)','Ae(mm)','결과','문제유형','특이사항'];
+  const rows = machiningData.map(d => [
+    d.machine, d.material, d.heat, d.tooltype, d.diameter,
+    d.process, d.strategy, d.overhang, d.rpm, d.feed,
+    d.ap, d.ae, d.result, d.problem, d.note
+  ]);
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '가공조건');
+  XLSX.writeFile(wb, '가공조건표_export.xlsx');
+}
+</script>
+</body>
+</html>
