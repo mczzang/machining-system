@@ -496,6 +496,9 @@
             </div>
             <input type="file" id="xlsxFile" accept=".xlsx,.xls" style="display:none" onchange="loadExcel(this)">
             <div id="loadStatus" class="text-sm text-gray"></div>
+            <div class="btn-row" style="margin-top:8px">
+              <button class="btn btn-outline" onclick="clearAllData()" style="font-size:11px; color:var(--danger); border-color:var(--danger)">🗑 전체 데이터 초기화</button>
+            </div>
           </div>
         </div>
       </div>
@@ -669,6 +672,33 @@
 // ── 데이터 저장소
 let machiningData = [];
 
+// ── 로컬스토리지 저장/불러오기
+function saveToLocal() {
+  try {
+    localStorage.setItem('machiningData', JSON.stringify(machiningData));
+  } catch(e) {
+    console.error('저장 실패:', e);
+  }
+}
+
+function loadFromLocal() {
+  try {
+    const saved = localStorage.getItem('machiningData');
+    if (saved) {
+      machiningData = JSON.parse(saved);
+      updateCount();
+      updateFilters();
+      document.getElementById('loadStatus').innerHTML =
+        `<span style="color:var(--good)">✔ 저장된 데이터 ${machiningData.length}건 자동 불러오기 완료!</span>`;
+    }
+  } catch(e) {
+    console.error('불러오기 실패:', e);
+  }
+}
+
+// 페이지 로드시 자동으로 로컬스토리지에서 불러오기
+window.addEventListener('load', loadFromLocal);
+
 // ── 탭 전환
 function switchTab(name) {
   document.querySelectorAll('.tab').forEach((t,i) => {
@@ -716,8 +746,9 @@ function loadExcel(input) {
       }
       updateCount();
       updateFilters();
+      saveToLocal();
       document.getElementById('loadStatus').innerHTML =
-        `<span style="color:var(--good)">✔ ${added}건 불러오기 완료!</span>`;
+        `<span style="color:var(--good)">✔ ${added}건 불러오기 완료! (자동 저장됨)</span>`;
     } catch(err) {
       document.getElementById('loadStatus').innerHTML =
         `<span style="color:var(--danger)">오류: ${err.message}</span>`;
@@ -890,8 +921,9 @@ function addData() {
   machiningData.push(row);
   updateCount();
   updateFilters();
+  saveToLocal();
   document.getElementById('inputStatus').innerHTML =
-    `<span style="color:var(--good)">✔ 데이터 추가 완료! (총 ${machiningData.length}건)</span>`;
+    `<span style="color:var(--good)">✔ 데이터 추가 완료! (총 ${machiningData.length}건 자동 저장됨)</span>`;
 }
 
 function clearInput() {
@@ -994,7 +1026,16 @@ function updateFilters() {
   });
 }
 
-// ── 엑셀 다운로드
+// ── 전체 데이터 초기화
+function clearAllData() {
+  if (!confirm('저장된 데이터를 전부 삭제할까요?')) return;
+  machiningData = [];
+  localStorage.removeItem('machiningData');
+  updateCount();
+  updateFilters();
+  document.getElementById('loadStatus').innerHTML =
+    `<span style="color:var(--danger)">🗑 전체 데이터 초기화 완료</span>`;
+}
 function exportExcel() {
   if (machiningData.length === 0) { alert('데이터가 없습니다!'); return; }
   const headers = ['기계명','재질','열처리','공구타입','공구지름(mm)','가공종류','가공전략',
