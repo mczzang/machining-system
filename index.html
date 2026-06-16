@@ -70,7 +70,7 @@
 
   /* Layout */
   .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-  .grid { display: grid; grid-template-columns: 340px 1fr; gap: 20px; }
+  .grid { display: grid; grid-template-columns: 380px 1fr; gap: 20px; }
 
   /* Cards */
   .card {
@@ -455,12 +455,20 @@
                 <label>돌출길이 (mm)</label>
                 <input type="number" id="r-overhang" placeholder="예: 55">
               </div>
-              <div class="form-group full">
+              <div class="form-group">
                 <label>가공종류</label>
                 <select id="r-process">
                   <option value="">선택</option>
                   <option>황삭</option><option>황잔삭</option><option>중삭</option>
                   <option>정삭</option><option>잔삭</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>가공전략</label>
+                <select id="r-strategy">
+                  <option value="">전체</option>
+                  <option>황삭</option><option>등고선</option><option>라스터</option>
+                  <option>3D옵셋</option><option>코너펜슬</option><option>코너잔삭</option>
                 </select>
               </div>
             </div>
