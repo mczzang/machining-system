@@ -673,7 +673,7 @@
 let machiningData = [];
 
 // ── 구글 시트 API 주소
-const API_URL = 'https://script.google.com/macros/s/AKfycbxDvSQDZyTPtF5qCCFOBSWCW_bAnT2MaOY6xqq4lEm2WL6HdiiHK_7fzTsstu_c5yVQ/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbzO4feSqdVfty75Ufi_ea2yrKeDpjRQIhbhGJ3-5jBzHVfu_U5xS7gKbsGkKl8BO2dt/exec';
 
 // ── 구글 시트에서 데이터 불러오기
 async function loadFromSheet() {
@@ -720,12 +720,10 @@ async function loadFromSheet() {
 // ── 구글 시트에 행 추가
 async function saveRowToSheet(row) {
   try {
-    await fetch(API_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      body: JSON.stringify({ action: 'addData', row }),
-      headers: { 'Content-Type': 'application/json' }
-    });
+    const params = new URLSearchParams();
+    params.append('action', 'addData');
+    params.append('row', JSON.stringify(row));
+    await fetch(API_URL + '?' + params.toString());
   } catch(e) {
     console.error('구글 시트 저장 실패:', e);
   }
@@ -734,12 +732,12 @@ async function saveRowToSheet(row) {
 // ── 엑셀 데이터 구글 시트에 일괄 저장
 async function saveAllToSheet(rows) {
   try {
-    await fetch(API_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      body: JSON.stringify({ action: 'saveAll', rows }),
-      headers: { 'Content-Type': 'application/json' }
-    });
+    for (const row of rows) {
+      const params = new URLSearchParams();
+      params.append('action', 'addData');
+      params.append('row', JSON.stringify(row));
+      await fetch(API_URL + '?' + params.toString());
+    }
   } catch(e) {
     console.error('일괄 저장 실패:', e);
   }
