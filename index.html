@@ -672,32 +672,86 @@
 // ── 데이터 저장소
 let machiningData = [];
 
-// ── 로컬스토리지 저장/불러오기
-function saveToLocal() {
-  try {
-    localStorage.setItem('machiningData', JSON.stringify(machiningData));
-  } catch(e) {
-    console.error('저장 실패:', e);
-  }
-}
+// ── 구글 시트 API 주소
+const API_URL = 'https://script.google.com/macros/s/AKfycbxrBqHVCVG64H1iY6Cc3sZ9FSI24v9FIrzhqqLtYJcAjAAKYKcg2FlCPyCqoV5eDY9I/exec';
 
-function loadFromLocal() {
+// ── 구글 시트에서 데이터 불러오기
+async function loadFromSheet() {
   try {
-    const saved = localStorage.getItem('machiningData');
-    if (saved) {
-      machiningData = JSON.parse(saved);
-      updateCount();
-      updateFilters();
-      document.getElementById('loadStatus').innerHTML =
-        `<span style="color:var(--good)">✔ 저장된 데이터 ${machiningData.length}건 자동 불러오기 완료!</span>`;
+    document.getElementById('loadStatus').innerHTML = '⏳ 구글 시트에서 불러오는 중...';
+    const res = await fetch(API_URL + '?action=getData');
+    const rows = await res.json();
+    if (rows.length <= 1) {
+      document.getElementById('loadStatus').innerHTML = '<span style="color:var(--gray)">저장된 데이터가 없습니다.</span>';
+      return;
     }
+    machiningData = [];
+    for (let i = 1; i < rows.length; i++) {
+      const r = rows[i];
+      if (!r[0]) continue;
+      machiningData.push({
+        machine:  r[0]  || '',
+        material: r[1]  || '',
+        heat:     r[2]  || '',
+        tooltype: r[3]  || '',
+        diameter: parseFloat(r[4]) || 0,
+        process:  r[5]  || '',
+        strategy: r[6]  || '',
+        overhang: parseFloat(r[7]) || 0,
+        rpm:      parseFloat(r[8]) || 0,
+        feed:     parseFloat(r[9]) || 0,
+        ap:       parseFloat(r[10]) || 0,
+        ae:       parseFloat(r[11]) || 0,
+        result:   r[12] || '',
+        problem:  r[13] || '',
+        note:     r[14] || '',
+      });
+    }
+    updateCount();
+    updateFilters();
+    document.getElementById('loadStatus').innerHTML =
+      `<span style="color:var(--good)">✔ 구글 시트에서 ${machiningData.length}건 불러오기 완료!</span>`;
   } catch(e) {
-    console.error('불러오기 실패:', e);
+    document.getElementById('loadStatus').innerHTML =
+      `<span style="color:var(--danger)">오류: ${e.message}</span>`;
   }
 }
 
-// 페이지 로드시 자동으로 로컬스토리지에서 불러오기
-window.addEventListener('load', loadFromLocal);
+// ── 구글 시트에 행 추가
+async function saveRowToSheet(row) {
+  try {
+    await fetch(API_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      body: JSON.stringify({ action: 'addData', row }),
+      headers: { 'Content-Type': 'application/json' }
+    });
+  } catch(e) {
+    console.error('구글 시트 저장 실패:', e);
+  }
+}
+
+// ── 엑셀 데이터 구글 시트에 일괄 저장
+async function saveAllToSheet(rows) {
+  try {
+    await fetch(API_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      body: JSON.stringify({ action: 'saveAll', rows }),
+      headers: { 'Content-Type': 'application/json' }
+    });
+  } catch(e) {
+    console.error('일괄 저장 실패:', e);
+  }
+}
+
+// ── 로컬스토리지 (백업용)
+function saveToLocal() {
+  try { localStorage.setItem('machiningData', JSON.stringify(machiningData)); } catch(e) {}
+}
+
+// 페이지 로드시 구글 시트에서 자동 불러오기
+window.addEventListener('load', loadFromSheet);
 
 // ── 탭 전환
 function switchTab(name) {
@@ -715,7 +769,7 @@ function loadExcel(input) {
   const file = input.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = function(e) {
+  reader.onload = async function(e) {
     try {
       const wb = XLSX.read(e.target.result, { type: 'array' });
       const ws = wb.Sheets['가공조건'];
@@ -747,8 +801,13 @@ function loadExcel(input) {
       updateCount();
       updateFilters();
       saveToLocal();
+      await saveAllToSheet(machiningData.slice(-added).map(d => [
+        d.machine, d.material, d.heat, d.tooltype, d.diameter,
+        d.process, d.strategy, d.overhang, d.rpm, d.feed,
+        d.ap, d.ae, d.result, d.problem, d.note
+      ]));
       document.getElementById('loadStatus').innerHTML =
-        `<span style="color:var(--good)">✔ ${added}건 불러오기 완료! (자동 저장됨)</span>`;
+        `<span style="color:var(--good)">✔ ${added}건 불러오기 완료! 구글 시트에 저장됨</span>`;
     } catch(err) {
       document.getElementById('loadStatus').innerHTML =
         `<span style="color:var(--danger)">오류: ${err.message}</span>`;
@@ -896,7 +955,7 @@ function clearRecommend() {
 }
 
 // ── 데이터 추가
-function addData() {
+async function addData() {
   const row = {
     machine:  document.getElementById('i-machine').value,
     material: document.getElementById('i-material').value,
@@ -922,8 +981,13 @@ function addData() {
   updateCount();
   updateFilters();
   saveToLocal();
+  await saveRowToSheet([
+    row.machine, row.material, row.heat, row.tooltype, row.diameter,
+    row.process, row.strategy, row.overhang, row.rpm, row.feed,
+    row.ap, row.ae, row.result, row.problem, row.note
+  ]);
   document.getElementById('inputStatus').innerHTML =
-    `<span style="color:var(--good)">✔ 데이터 추가 완료! (총 ${machiningData.length}건 자동 저장됨)</span>`;
+    `<span style="color:var(--good)">✔ 데이터 추가 완료! 구글 시트에 저장됨 (총 ${machiningData.length}건)</span>`;
 }
 
 function clearInput() {
