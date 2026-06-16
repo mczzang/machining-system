@@ -778,21 +778,21 @@ function loadExcel(input) {
         const r = rows[i];
         if (!r[0]) continue;
         machiningData.push({
-          machine:  r[0]  || '',
-          material: r[1]  || '',
-          heat:     r[2]  || '',
-          tooltype: r[3]  || '',
+          machine:  String(r[0]  || ''),
+          material: String(r[1]  || ''),
+          heat:     String(r[2]  || ''),
+          tooltype: String(r[3]  || ''),
           diameter: parseFloat(r[4]) || 0,
-          process:  r[5]  || '',
-          strategy: r[6]  || '',
+          process:  String(r[5]  || ''),
+          strategy: String(r[6]  || ''),
           overhang: parseFloat(r[7]) || 0,
           rpm:      parseFloat(r[8]) || 0,
           feed:     parseFloat(r[9]) || 0,
           ap:       parseFloat(r[10]) || 0,
           ae:       parseFloat(r[11]) || 0,
-          result:   r[12] || '',
-          problem:  r[13] || '',
-          note:     r[14] || '',
+          result:   String(r[12] || ''),
+          problem:  String(r[13] || ''),
+          note:     String(r[14] || ''),
         });
         added++;
       }
@@ -834,13 +834,13 @@ function getRecommendation() {
 
   // 유사 조건 필터 (±5mm, 결과=좋음만 추천)
   const similar = machiningData.filter(d => {
-    const matchBase = d.machine === machine &&
+    const matchBase = String(d.machine) === String(machine) &&
                       d.material === material &&
                       d.tooltype === tooltype &&
-                      d.diameter === diameter &&
+                      Number(d.diameter) === Number(diameter) &&
                       d.process === process;
     const matchHeat = !heat || d.heat === heat;
-    const matchOH   = !overhang || (d.overhang >= overhang - 5 && d.overhang <= overhang + 5);
+    const matchOH   = !overhang || (Number(d.overhang) >= Number(overhang) - 5 && Number(d.overhang) <= Number(overhang) + 5);
     return matchBase && matchHeat && matchOH;
   });
 
